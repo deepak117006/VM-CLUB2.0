@@ -1,0 +1,1416 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
+<meta name="theme-color" content="#cc2222"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="VM Club"/>
+<title>VM Silambam &amp; Karate Club</title>
+<link rel="manifest" href="data:application/manifest+json,{%22name%22:%22VM Silambam and Karate Club%22,%22short_name%22:%22VM Club%22,%22start_url%22:%22.%22,%22display%22:%22standalone%22,%22background_color%22:%22%230c0c0c%22,%22theme_color%22:%22%23cc2222%22,%22icons%22:[{%22src%22:%22data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' fill='%230c0c0c'/%3E%3Cpolygon points='256,40 470,130 470,370 256,480 42,370 42,130' fill='%23111' stroke='%23cc2222' stroke-width='16'/%3E%3Cpolyline points='80,160 175,360 256,240 337,360 432,160' stroke='%23cc2222' stroke-width='30' stroke-linecap='round' stroke-linejoin='round' fill='none'/%3E%3Cpolyline points='80,160 256,390 432,160' stroke='white' stroke-width='10' stroke-linecap='round' stroke-linejoin='round' fill='none'/%3E%3Cpolyline points='175,70 256,148 337,70' stroke='%23cc2222' stroke-width='24' stroke-linecap='round' fill='none'/%3E%3C/svg%3E%22,%22sizes%22:%22512x512%22,%22type%22:%22image/svg+xml%22,%22purpose%22:%22any maskable%22}]}"/>
+<style>
+/* ── RESET & BASE ── */
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden;background:#0c0c0c}
+#root{height:100%;overflow:hidden}
+body{font-family:'Segoe UI',system-ui,sans-serif;color:#f2f2f2;-webkit-font-smoothing:antialiased}
+::-webkit-scrollbar{width:3px}::-webkit-scrollbar-thumb{background:#cc222244;border-radius:4px}
+input,select,textarea{
+  background:#202020;color:#f2f2f2;border:1.5px solid #2c2c2c;border-radius:11px;
+  padding:10px 13px;width:100%;font-size:14px;outline:none;font-family:inherit;
+  transition:border .2s;-webkit-appearance:none;appearance:none}
+input:focus,select:focus,textarea:focus{border-color:#cc2222;box-shadow:0 0 0 3px #cc222218}
+input::placeholder,textarea::placeholder{color:#444}
+select option{background:#202020}
+button{cursor:pointer;font-family:inherit;transition:transform .12s,opacity .12s;border:none;outline:none}
+button:active{transform:scale(.96)}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 #cc222266}50%{box-shadow:0 0 0 10px #cc222200}}
+.fa{animation:fadeUp .25s ease}
+.spinner{width:38px;height:38px;border:3px solid #2c2c2c;border-top-color:#cc2222;border-radius:50%;animation:spin .8s linear infinite}
+
+/* ── INSTALL BANNERS ── */
+#ib{display:none;position:fixed;bottom:76px;left:50%;transform:translateX(-50%);
+  background:#cc2222;color:#fff;padding:12px 20px;border-radius:14px;font-weight:800;
+  font-size:14px;z-index:9999;box-shadow:0 4px 20px #0009;max-width:340px;width:90%;
+  text-align:center;cursor:pointer}
+#iib{display:none;position:fixed;bottom:76px;left:50%;transform:translateX(-50%);
+  background:#1a1a1a;border:1px solid #cc2222;color:#f2f2f2;padding:14px 18px;
+  border-radius:14px;font-size:13px;z-index:9999;box-shadow:0 4px 20px #0009;
+  max-width:340px;width:90%;text-align:center}
+</style>
+</head>
+<body>
+
+<div id="root">
+  <div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:14px">
+    <div class="spinner"></div>
+    <div style="color:#666;font-size:13px">Connecting to Firebase…</div>
+  </div>
+</div>
+
+<div id="ib" onclick="doInstall()">📲 Install VM Club — Tap to Add to Home Screen</div>
+<div id="iib">
+  📲 <strong>Install VM Club:</strong><br/>
+  Tap <strong>Share ⬆️</strong> → <strong>"Add to Home Screen"</strong>
+  <button onclick="document.getElementById('iib').style.display='none'"
+    style="display:block;margin:10px auto 0;background:transparent;color:#cc2222;
+    border:1px solid #cc2222;border-radius:8px;padding:5px 16px;font-weight:800;font-size:13px">
+    Got it ✓
+  </button>
+</div>
+
+<!-- Firebase SDK (loaded ONCE) -->
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+
+<!-- React 18 -->
+<script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+<script>
+/* ── Service Worker (offline cache) ── */
+if('serviceWorker' in navigator){
+  const sw=`const C='vm-v2';self.addEventListener('install',e=>{self.skipWaiting();});self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(k=>Promise.all(k.filter(x=>x!==C).map(x=>caches.delete(x)))));self.clients.claim();});self.addEventListener('fetch',e=>{if(e.request.url.includes('firestore')||e.request.url.includes('googleapis'))return;e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request).catch(()=>r)));});`;
+  navigator.serviceWorker.register(URL.createObjectURL(new Blob([sw],{type:'application/javascript'}))).catch(()=>{});
+}
+/* ── PWA install ── */
+let _dip=null;
+window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();_dip=e;document.getElementById('ib').style.display='block';setTimeout(()=>document.getElementById('ib').style.display='none',9000);});
+function doInstall(){if(!_dip)return;_dip.prompt();_dip.userChoice.then(()=>{_dip=null;document.getElementById('ib').style.display='none';});}
+window.addEventListener('appinstalled',()=>document.getElementById('ib').style.display='none');
+const isIOS=/iphone|ipad|ipod/i.test(navigator.userAgent);
+const isSA=window.matchMedia('(display-mode:standalone)').matches||navigator.standalone;
+if(isIOS&&!isSA)setTimeout(()=>document.getElementById('iib').style.display='block',3500);
+
+/* ── Firebase init ── */
+const firebaseConfig={
+  apiKey:"AIzaSyAiCI3PjrfyU-7RxyKiTrs4t9p4S5sOXfM",
+  authDomain:"vm-club.firebaseapp.com",
+  projectId:"vm-club",
+  storageBucket:"vm-club.firebasestorage.app",
+  messagingSenderId:"104021197625",
+  appId:"1:104021197625:web:31e4c1143b792d98ae5ee8"
+};
+if(!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+const db=firebase.firestore();
+db.enablePersistence({synchronizeTabs:true}).catch(()=>{});
+</script>
+
+<script type="text/babel" data-presets="react">
+const {useState,useEffect,useRef,useCallback,useMemo}=React;
+
+/* ══════════════════════════════════════════════
+   CONSTANTS
+══════════════════════════════════════════════ */
+const DISCIPLINES=["Silambam","Karate","Nunchaku","Self Defence"];
+const DISC_ICON={Silambam:"🥢",Karate:"🥋",Nunchaku:"⛓️","Self Defence":"🛡️"};
+const BELT={
+  Silambam:["Beginner","Yellow","Orange","Green","Blue","Brown","Black"],
+  Karate:["White Belt","Yellow Belt","Orange Belt","Green Belt","Blue Belt","Brown Belt","Black Belt"],
+  Nunchaku:["Beginner","Intermediate","Advanced","Expert","Master"],
+  "Self Defence":["Level 1","Level 2","Level 3","Instructor"],
+};
+const DAYS=["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
+const MONTHS=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const BADGES=["🥇","🥈","🥉","🏆","⭐","🔥","🛡️","⚡","🎖️","👊"];
+const ADMIN_PIN="vmlegend";
+const CLOUD_NAME="dm5xlw4j3";
+const UPLOAD_PRESET="x7wehhi5";
+
+const C={
+  bg:"#0c0c0c",card:"#161616",card2:"#202020",
+  red:"#cc2222",redD:"#8f1515",redG:"#cc222228",
+  white:"#f2f2f2",muted:"#666",border:"#2c2c2c",
+  green:"#1f8c4a",blue:"#1a5fb4",gold:"#b8860b",
+};
+
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+const todayStr=()=>new Date().toISOString().slice(0,10);
+const fmtDate=d=>{try{const x=new Date(d);return`${x.getDate()} ${MONTHS[x.getMonth()]} ${x.getFullYear()}`;}catch{return d||"";}};
+
+/* ══════════════════════════════════════════════
+   FIRESTORE HELPERS — all writes go through here
+══════════════════════════════════════════════ */
+const fsAdd    =(col,data)=>db.collection(col).add({...data,createdAt:Date.now()});
+const fsSet    =(col,id,data)=>db.collection(col).doc(id).set(data,{merge:true});
+const fsUpdate =(col,id,data)=>db.collection(col).doc(id).update(data);
+const fsDelete =(col,id)=>db.collection(col).doc(id).delete();
+
+/* real-time collection listener → returns [data, loading] */
+function useCol(col,orderField="createdAt"){
+  const [data,setData]=useState([]);
+  const [loading,setLoading]=useState(true);
+  useEffect(()=>{
+    const q=orderField?db.collection(col).orderBy(orderField,"desc"):db.collection(col);
+    const unsub=q.onSnapshot(snap=>{
+      setData(snap.docs.map(d=>({id:d.id,...d.data()})));
+      setLoading(false);
+    },()=>setLoading(false));
+    return unsub;
+  },[col]);
+  return [data,loading];
+}
+
+/* ══════════════════════════════════════════════
+   UI ATOMS
+══════════════════════════════════════════════ */
+function VMLogo({size=52}){
+  return(
+    <svg width={size} height={size} viewBox="0 0 260 260" fill="none"
+      style={{filter:"drop-shadow(0 0 6px #cc222288)",flexShrink:0}}>
+      <polygon points="130,8 248,55 248,175 130,252 12,175 12,55" fill="#111" stroke="#cc2222" strokeWidth="7"/>
+      <polyline points="28,68 82,178 130,100 178,178 232,68"
+        stroke="#111" strokeWidth="22" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+      <polyline points="28,68 82,178 130,100 178,178 232,68"
+        stroke="#cc2222" strokeWidth="13" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+      <polyline points="28,68 82,178 130,100 178,178 232,68"
+        stroke="#f2f2f2" strokeWidth="4.5" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+      <polyline points="82,26 130,72 178,26"
+        stroke="#111" strokeWidth="18" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+      <polyline points="82,26 130,72 178,26"
+        stroke="#cc2222" strokeWidth="11" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+      <polyline points="82,26 130,72 178,26"
+        stroke="#f2f2f2" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+    </svg>
+  );
+}
+
+function Av({name="?",photo,size=44}){
+  const pal=["#cc2222","#b01c1c","#8f1515","#6e0e0e"];
+  const col=pal[((name||"?").charCodeAt(0)||0)%pal.length];
+  const ini=(name||"?").split(" ").map(w=>w[0]).join("").toUpperCase().slice(0,2);
+  if(photo)return<img src={photo} alt={name} style={{width:size,height:size,borderRadius:"50%",objectFit:"cover",border:`2px solid ${col}`,flexShrink:0}}/>;
+  return<div style={{width:size,height:size,borderRadius:"50%",background:`radial-gradient(circle at 33% 33%,${col}99,${col}33)`,border:`2px solid ${col}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:size*.32,fontWeight:900,color:"#fff",flexShrink:0}}>{ini}</div>;
+}
+
+function Pill({label,color=C.red,small=false}){
+  return<span style={{background:color+"22",color,border:`1px solid ${color}44`,padding:small?"2px 8px":"3px 11px",borderRadius:20,fontSize:small?10:11,fontWeight:700,whiteSpace:"nowrap",display:"inline-block"}}>{label}</span>;
+}
+
+function Card({children,style={},onClick}){
+  return<div onClick={onClick} style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:14,overflow:"hidden",...style}}>{children}</div>;
+}
+
+function SecHead({title}){
+  return(
+    <div style={{marginBottom:14}}>
+      <div style={{fontSize:16,fontWeight:900,letterSpacing:.8}}>{title}</div>
+      <div style={{width:32,height:3,background:`linear-gradient(90deg,${C.red},transparent)`,borderRadius:2,marginTop:4}}/>
+    </div>
+  );
+}
+
+function Btn({children,onClick,color=C.red,outline=false,full=false,sm=false,disabled=false,style={}}){
+  return(
+    <button onClick={onClick} disabled={disabled} style={{
+      width:full?"100%":"auto",
+      background:outline?"transparent":`linear-gradient(135deg,${color},${color}bb)`,
+      color:outline?color:"#fff",border:`1.5px solid ${color}`,borderRadius:11,
+      padding:sm?"7px 14px":"11px 18px",fontWeight:800,fontSize:sm?12:14,
+      cursor:disabled?"not-allowed":"pointer",opacity:disabled?.5:1,
+      boxShadow:outline?"none":`0 2px 12px ${color}33`,...style
+    }}>{children}</button>
+  );
+}
+
+function Lbl({children}){
+  return<label style={{fontSize:10,fontWeight:800,color:C.muted,display:"block",marginBottom:5,letterSpacing:1.5,textTransform:"uppercase"}}>{children}</label>;
+}
+
+function FInput({label,type="text",value,onChange,placeholder,rows,children}){
+  const s={background:C.card2,color:C.white,border:`1.5px solid ${C.border}`,borderRadius:11,padding:"10px 13px",width:"100%",fontSize:14,outline:"none",fontFamily:"inherit"};
+  return(
+    <div style={{marginBottom:12}}>
+      {label&&<Lbl>{label}</Lbl>}
+      {type==="select"
+        ?<select value={value} onChange={onChange} style={s}>{children}</select>
+        :type==="textarea"
+          ?<textarea value={value} onChange={onChange} placeholder={placeholder} rows={rows||3} style={{...s,resize:"none"}}/>
+          :<input type={type} value={value} onChange={onChange} placeholder={placeholder} style={s}/>
+      }
+    </div>
+  );
+}
+
+function Toast({msg,type,onDone}){
+  useEffect(()=>{const t=setTimeout(onDone,3000);return()=>clearTimeout(t);},[]);
+  const bg={success:C.green,error:C.redD,info:C.blue}[type]||C.green;
+  return<div style={{position:"fixed",top:68,left:"50%",transform:"translateX(-50%)",background:bg,color:"#fff",padding:"11px 22px",borderRadius:13,fontWeight:800,fontSize:13,zIndex:9999,boxShadow:"0 6px 28px #000a",maxWidth:310,textAlign:"center",animation:"fadeUp .3s ease",whiteSpace:"nowrap"}}>{msg}</div>;
+}
+
+function Loader({msg="Loading…"}){
+  return<div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"60px 0",gap:14}}><div className="spinner"/><div style={{color:C.muted,fontSize:13}}>{msg}</div></div>;
+}
+
+const BST={background:"transparent",color:C.muted,fontSize:13,fontWeight:700,border:`1px solid ${C.border}`,borderRadius:8,padding:"6px 14px",marginBottom:10};
+
+/* ══════════════════════════════════════════════
+   ROOT APP
+══════════════════════════════════════════════ */
+function App(){
+  const [role,setRole]=useState(null);
+  const [pinVal,setPinVal]=useState("");
+  const [pinErr,setPinErr]=useState(false);
+  const [showPin,setShowPin]=useState(false);
+  const [toast,setToast]=useState(null);
+  const toast2=(msg,type="success")=>setToast({msg,type});
+
+  /* login screen */
+  if(!role) return(
+    <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",
+      minHeight:"50vh",padding:24,background:`radial-gradient(ellipse at top,#200404,${C.bg} 60%)`}}>
+      <VMLogo size={90}/>
+      <div style={{marginTop:14,textAlign:"center"}}>
+        <div style={{fontSize:28,fontWeight:900,letterSpacing:3,color:C.red,lineHeight:1.1}}>VM SILAMBAM</div>
+        <div style={{fontSize:18,fontWeight:900,letterSpacing:3,color:C.red,marginTop:2}}>&amp; KARATE CLUB</div>
+        <div style={{fontSize:12,color:"#888",letterSpacing:2,marginTop:6}}>Developed by PERIXA Technologies</div>
+      </div>
+      <div style={{width:50,height:2,background:C.red,borderRadius:2,margin:"18px 0 26px"}}/>
+
+      <div style={{width:"100%",maxWidth:340}}>
+        <div style={{fontSize:11,color:C.muted,fontWeight:800,letterSpacing:2,textAlign:"center",marginBottom:18}}>SELECT YOUR ROLE</div>
+
+        <button onClick={()=>setRole("parent")}
+          style={{width:"100%",background:C.card,border:`1.5px solid ${C.border}`,borderRadius:14,
+            padding:"15px",marginBottom:12,cursor:"pointer",display:"flex",alignItems:"center",
+            gap:14,color:C.white,textAlign:"left"}}>
+          <div style={{fontSize:34}}>👪</div>
+          <div><div style={{fontWeight:900,fontSize:16}}>Parent / Student</div>
+          <div style={{color:C.muted,fontSize:12,marginTop:2}}>View schedules, attendance &amp; achievements</div></div>
+        </button>
+
+        <button onClick={()=>setShowPin(v=>!v)}
+          style={{width:"100%",background:C.card,border:`1.5px solid ${C.red}55`,borderRadius:14,
+            padding:"15px",cursor:"pointer",display:"flex",alignItems:"center",
+            gap:14,color:C.white,textAlign:"left"}}>
+          <div style={{fontSize:34}}>🔐</div>
+          <div><div style={{fontWeight:900,fontSize:16,color:C.red}}>Admin</div>
+          <div style={{color:C.muted,fontSize:12,marginTop:2}}>Full club management access</div></div>
+        </button>
+
+        {showPin&&(
+          <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:14,padding:16,marginTop:12}} className="fa">
+            <Lbl>ENTER ADMIN PIN</Lbl>
+            <input type="password" value={pinVal}
+              onChange={e=>{setPinVal(e.target.value);setPinErr(false);}}
+              onKeyDown={e=>{if(e.key==="Enter"){pinVal===ADMIN_PIN?(setRole("admin"),setShowPin(false),setPinVal("")):(setPinErr(true));}}}
+              placeholder="Enter PIN" maxLength={12}
+              style={{background:C.card2,color:C.white,border:`1.5px solid ${pinErr?C.red:C.border}`,
+                borderRadius:11,padding:"11px 14px",width:"100%",fontSize:16,outline:"none",
+                letterSpacing:6,textAlign:"center",marginBottom:pinErr?6:10}}/>
+            {pinErr&&<div style={{color:C.red,fontSize:12,fontWeight:700,marginBottom:8,textAlign:"center"}}>❌ Wrong PIN — try again</div>}
+            <Btn full onClick={()=>{pinVal===ADMIN_PIN?(setRole("admin"),setShowPin(false),setPinVal("")):(setPinErr(true));}}>🔓 Unlock Admin</Btn>
+          </div>
+        )}
+      </div>
+
+      <div style={{marginTop:30,textAlign:"center",color:C.muted,fontSize:11,lineHeight:1.9}}>
+        📲 <strong style={{color:C.white}}>Install this app:</strong><br/>
+        Android: tap ⋮ → "Add to Home Screen"<br/>
+        iPhone: tap ⬆️ Share → "Add to Home Screen"<br/>
+	<strong style={{color:C.white}}>Contact: 9597330629 / 7904478682</strong><br/>
+
+      </div>
+	
+      {toast&&<Toast msg={toast.msg} type={toast.type} onDone={()=>setToast(null)}/>}
+    </div>
+  );
+
+  return(
+    <>
+      {role==="admin"?<AdminApp showToast={toast2} logout={()=>setRole(null)}/>:<ParentApp showToast={toast2} logout={()=>setRole(null)}/>}
+      {toast&&<Toast msg={toast.msg} type={toast.type} onDone={()=>setToast(null)}/>}
+    </>
+  );
+}
+
+/* ══════════════════════════════════════════════
+   ADMIN APP
+══════════════════════════════════════════════ */
+function AdminApp({showToast,logout}){
+const [showNav, setShowNav] = useState(true);
+const lastScroll = useRef(0);
+  const [tab,setTab]=useState("dash");
+  useEffect(() => {
+  const handleScroll = () => {
+    const current = window.scrollY;
+
+    if (current > lastScroll.current && current > 50) {
+      // scrolling down
+      setShowNav(false);
+    } else {
+      // scrolling up
+      setShowNav(true);
+    }
+
+    lastScroll.current = current;
+  };
+
+  window.addEventListener("scroll", handleScroll);
+
+  return () => {
+    window.removeEventListener("scroll", handleScroll);
+  };
+}, []);
+  /* ALL data from Firestore — live */
+  const [students, stuLoad] =useCol("students");
+  const [batches,  batLoad] =useCol("batches","name");
+  const [schedules,schLoad] =useCol("schedules","day");
+  const [gallery,  galLoad] =useCol("gallery");
+  const [attendance,attLoad]=useCol("attendance","date");
+  const [fees,     feeLoad] =useCol("fees");
+
+  const loading=stuLoad||batLoad||schLoad||galLoad||attLoad||feeLoad;
+
+  const TABS=[
+    {id:"dash",   icon:"🏠",label:"Home"},
+    {id:"stu",    icon:"👥",label:"Students"},
+    {id:"sched",  icon:"📅",label:"Schedule"},
+    {id:"gallery",icon:"📸",label:"Gallery"},
+    {id:"fin",    icon:"💰",label:"Finance"},
+  ];
+
+  const pass={students,batches,schedules,gallery,attendance,fees,showToast};
+
+  return(
+    <div style={{display:"flex",flexDirection:"column",height:"100vh",background:C.bg}}>
+      {/* header */}
+      <div style={{background:"linear-gradient(180deg,#1e0404,#0c0c0c)",padding:"10px 14px",
+        borderBottom:"1px solid #2a0606",flexShrink:0,display:"flex",alignItems:"center",gap:10}}>
+        <VMLogo size={38}/>
+        <div style={{flex:1,lineHeight:1}}>
+          <div style={{fontSize:17,fontWeight:900,letterSpacing:2}}>VM SILAMBAM</div>
+          <div style={{fontSize:10,color:C.red,fontWeight:800,letterSpacing:3}}>&amp; KARATE CLUB — ADMIN</div>
+        </div>
+        <div style={{display:"flex",gap:8,alignItems:"center"}}>
+          <span style={{width:8,height:8,borderRadius:"50%",background:C.green,display:"inline-block",boxShadow:`0 0 6px ${C.green}`}}/>
+          <button onClick={logout} style={{background:"transparent",color:C.muted,fontSize:11,fontWeight:700,border:`1px solid ${C.border}`,borderRadius:8,padding:"5px 10px"}}>Exit</button>
+        </div>
+      </div>
+
+      {/* scrollable content — paddingBottom makes room for fixed nav */}
+      <div style={{flex:1,overflowY:"auto",overscrollBehavior:"contain"}}>
+        {loading
+          ?<Loader msg="Connecting to Firebase…"/>
+          :<>
+            {tab==="dash"    &&<ADash    {...pass} setTab={setTab}/>}
+            {tab==="stu"     &&<AStu     {...pass}/>}
+            {tab==="sched"   &&<ASched   {...pass}/>}
+            {tab==="gallery" &&<AGallery {...pass}/>}
+            {tab==="fin"     &&<AFin     {...pass}/>}
+          </>
+        }
+        {/* spacer so last card isn't hidden behind nav */}
+        <div style={{height:70}}/>
+      </div>
+
+      {/* fixed bottom nav */}
+      <div style={{position:"fixed",bottom:0,left:0,right:0,
+        background:"#0e0e0ef5",borderTop:"1px solid #1e0404",
+        padding:"6px 0 calc(10px + env(safe-area-inset-bottom))",
+        display:"flex",justifyContent:"space-around",zIndex:1000}}>
+        {TABS.map(t=>(
+          <button key={t.id} onClick={()=>setTab(t.id)}
+            style={{display:"flex",flexDirection:"column",alignItems:"center",gap:2,
+              background:"transparent",padding:"4px 8px",color:tab===t.id?C.red:C.muted}}>
+            <span style={{fontSize:20}}>{t.icon}</span>
+            <span style={{fontSize:9,fontWeight:800,letterSpacing:.4}}>{t.label}</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ── Admin Dashboard ── */
+function ADash({students,batches,schedules,attendance,fees,setTab}){
+  const today=todayStr();
+  const presentToday=attendance.filter(a=>a.date===today&&a.present).length;
+  const pendingFees=fees.filter(f=>!f.paid).length;
+  return(
+    <div style={{padding:"14px"}} className="fa">
+      <SecHead title="DASHBOARD"/>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:16}}>
+        {[
+          {icon:"👥",val:students.length,label:"STUDENTS",col:C.red,t:"stu"},
+          {icon:"🏷️",val:batches.length, label:"BATCHES",  col:C.blue,t:"sched"},
+          {icon:"✅",val:presentToday,   label:"PRESENT TODAY",col:C.green,t:"stu"},
+          {icon:"💸",val:pendingFees,    label:"FEES PENDING", col:C.gold,t:"fin"},
+        ].map(s=>(
+          <Card key={s.label} onClick={()=>setTab(s.t)} style={{padding:"14px 12px",cursor:"pointer"}}>
+            <div style={{fontSize:22}}>{s.icon}</div>
+            <div style={{fontSize:26,fontWeight:900,color:s.col,lineHeight:1,marginTop:4}}>{s.val}</div>
+            <div style={{fontSize:10,color:C.muted,fontWeight:700,letterSpacing:.6,marginTop:2}}>{s.label}</div>
+          </Card>
+        ))}
+      </div>
+      <SecHead title="QUICK ACTIONS"/>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:16}}>
+        {[{icon:"➕",label:"Register Student",t:"stu"},{icon:"📅",label:"Add Session",t:"sched"},
+          {icon:"📸",label:"Upload Photo",t:"gallery"},{icon:"💰",label:"Manage Fees",t:"fin"}].map(q=>(
+          <Card key={q.label} onClick={()=>setTab(q.t)} style={{padding:"14px 10px",cursor:"pointer",textAlign:"center"}}>
+            <div style={{fontSize:26,marginBottom:6}}>{q.icon}</div>
+            <div style={{fontSize:13,fontWeight:800}}>{q.label}</div>
+          </Card>
+        ))}
+      </div>
+      <SecHead title="TODAY'S SESSIONS"/>
+      {schedules.length===0
+        ?<div style={{color:C.muted,textAlign:"center",padding:"20px 0",fontSize:13}}>No sessions yet</div>
+        :schedules.slice(0,5).map(s=>(
+          <Card key={s.id} style={{padding:"11px 13px",marginBottom:8,borderLeft:`3px solid ${C.red}`}}>
+            <div style={{display:"flex",alignItems:"center",gap:10}}>
+              <div style={{background:C.redG,color:C.red,borderRadius:8,padding:"5px 8px",fontSize:11,fontWeight:800,minWidth:64,textAlign:"center"}}>{s.time}</div>
+              <div style={{flex:1}}><div style={{fontWeight:800,fontSize:14}}>{DISC_ICON[s.discipline]||"🥋"} {s.discipline}</div><div style={{color:C.muted,fontSize:12,marginTop:1}}>{s.batchName||"General"} · {s.coach}</div></div>
+              <span style={{fontSize:11,color:C.blue,fontWeight:700}}>👥{s.studentIds?.length||0}</span>
+            </div>
+          </Card>
+        ))
+      }
+    </div>
+  );
+}
+
+/* ── Admin Students ── */
+function AStu({students,batches,attendance,showToast}){
+  const [view,setView]=useState("list");
+  const [selId,setSelId]=useState(null);
+  const [attDate,setAttDate]=useState(todayStr());
+  const [search,setSearch]=useState("");
+  const [showBatch,setShowBatch]=useState(false);
+  const [batchName,setBatchName]=useState("");
+  const [uploading,setUploading]=useState(false);
+  const photoRef=useRef();
+
+  const blankF={name:"",age:"",phone:"",email:"",address:"",disciplines:[],belts:{},batchId:"",joinDate:todayStr(),notes:"",photoPreview:null,photoFile:null};
+  const [form,setForm]=useState(blankF);
+
+  const toggleDisc=d=>setForm(p=>{
+    const has=p.disciplines.includes(d);
+    const disciplines=has?p.disciplines.filter(x=>x!==d):[...p.disciplines,d];
+    const belts={...p.belts};
+    if(has)delete belts[d];else belts[d]=BELT[d][0];
+    return{...p,disciplines,belts};
+  });
+
+  /* compress & upload to Cloudinary */
+  const uploadPhoto=async(file)=>{
+    const fd=new FormData();
+    fd.append("file",file);fd.append("upload_preset",UPLOAD_PRESET);
+    const res=await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`,{method:"POST",body:fd});
+    const d=await res.json();
+    if(d.secure_url)return d.secure_url;
+    throw new Error("Upload failed");
+  };
+
+  const handlePhotoSelect=e=>{
+    const f=e.target.files[0];if(!f)return;
+    if(f.size>5*1024*1024){showToast("Max 5MB","error");return;}
+    const r=new FileReader();
+    r.onload=ev=>setForm(p=>({...p,photoPreview:ev.target.result,photoFile:f}));
+    r.readAsDataURL(f);
+  };
+
+  const handlePhotoUpdate=async(e,studentId)=>{
+    const f=e.target.files[0];if(!f)return;
+    if(f.size>5*1024*1024){showToast("Max 5MB","error");return;}
+    setUploading(true);
+    showToast("Uploading photo…","info");
+    try{const url=await uploadPhoto(f);await fsUpdate("students",studentId,{photo:url});showToast("Photo updated 📸");}
+    catch{showToast("Upload failed","error");}
+    setUploading(false);
+  };
+
+  const register=async()=>{
+    if(!form.name.trim()){showToast("Name is required","error");return;}
+    if(!form.age){showToast("Age is required","error");return;}
+    if(!form.disciplines.length){showToast("Select at least one discipline","error");return;}
+    setUploading(true);
+    try{
+      let photo=null;
+      if(form.photoFile){showToast("Uploading photo…","info");photo=await uploadPhoto(form.photoFile);}
+      await fsAdd("students",{name:form.name.trim(),age:parseInt(form.age),phone:form.phone,email:form.email,address:form.address,disciplines:form.disciplines,belts:form.belts,batchId:form.batchId,joinDate:form.joinDate,notes:form.notes,photo,achievements:[]});
+      setForm(blankF);setView("list");
+      showToast(`${form.name} registered! 🥋`);
+    }catch(e){showToast("Error saving student","error");console.error(e);}
+    setUploading(false);
+  };
+
+  const getAtt=(sid,date)=>attendance.find(a=>a.studentId===sid&&a.date===date);
+  const toggleAtt=async(sid,date)=>{
+    const ex=getAtt(sid,date);
+    if(ex)await fsUpdate("attendance",ex.id,{present:!ex.present});
+    else await fsAdd("attendance",{studentId:sid,date,present:true});
+  };
+
+  const filtered=useMemo(()=>students.filter(s=>(s.name||"").toLowerCase().includes(search.toLowerCase())),[students,search]);
+
+  /* ── ADD STUDENT FORM ── */
+  if(view==="add") return(
+    <div style={{padding:"14px",paddingBottom:10}} className="fa">
+      <button onClick={()=>setView("list")} style={BST}>← Back</button>
+      <SecHead title="REGISTER STUDENT"/>
+      <div style={{textAlign:"center",marginBottom:16}}>
+        <div style={{position:"relative",display:"inline-block"}}>
+          <Av name={form.name||"?"} photo={form.photoPreview} size={80}/>
+          <button onClick={()=>photoRef.current.click()}
+            style={{position:"absolute",bottom:0,right:0,width:26,height:26,borderRadius:"50%",background:C.red,color:"#fff",fontSize:12,border:`2px solid ${C.bg}`,display:"flex",alignItems:"center",justifyContent:"center",padding:0}}>📷</button>
+        </div>
+        <input ref={photoRef} type="file" accept="image/*" style={{display:"none"}} onChange={handlePhotoSelect}/>
+        <div style={{color:C.muted,fontSize:11,marginTop:6}}>Tap 📷 to add profile photo</div>
+      </div>
+      <FInput label="Full Name *" value={form.name} onChange={e=>setForm(p=>({...p,name:e.target.value}))} placeholder="Student full name"/>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+        <FInput label="Age *" type="number" value={form.age} onChange={e=>setForm(p=>({...p,age:e.target.value}))} placeholder="Age"/>
+        <FInput label="Join Date" type="date" value={form.joinDate} onChange={e=>setForm(p=>({...p,joinDate:e.target.value}))}/>
+      </div>
+      <FInput label="Phone Number" type="tel" value={form.phone} onChange={e=>setForm(p=>({...p,phone:e.target.value}))} placeholder="Mobile number"/>
+      <FInput label="Email" type="email" value={form.email} onChange={e=>setForm(p=>({...p,email:e.target.value}))} placeholder="Email address"/>
+      <FInput label="Address" type="textarea" rows={2} value={form.address} onChange={e=>setForm(p=>({...p,address:e.target.value}))} placeholder="Home address"/>
+      <div style={{marginBottom:12}}>
+        <Lbl>DISCIPLINES * (select multiple)</Lbl>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+          {DISCIPLINES.map(d=>{const on=form.disciplines.includes(d);return(
+            <button key={d} onClick={()=>toggleDisc(d)} style={{padding:"10px 8px",borderRadius:12,fontWeight:800,fontSize:13,background:on?C.red:C.card2,color:on?"#fff":C.muted,border:`1px solid ${on?C.red:C.border}`,display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>
+              {DISC_ICON[d]} {d}
+            </button>
+          );})}
+        </div>
+      </div>
+      {form.disciplines.map(d=>(
+        <div key={d} style={{marginBottom:12}}>
+          <Lbl>{DISC_ICON[d]} {d} — BELT / LEVEL</Lbl>
+          <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+            {BELT[d].map(b=><button key={b} onClick={()=>setForm(p=>({...p,belts:{...p.belts,[d]:b}}))} style={{padding:"5px 11px",borderRadius:20,fontSize:12,fontWeight:800,background:form.belts[d]===b?C.red:C.card2,color:form.belts[d]===b?"#fff":C.muted,border:`1px solid ${form.belts[d]===b?C.red:C.border}`}}>{b}</button>)}
+          </div>
+        </div>
+      ))}
+      <div style={{marginBottom:12}}>
+        <Lbl>ASSIGN TO BATCH</Lbl>
+        <select value={form.batchId} onChange={e=>setForm(p=>({...p,batchId:e.target.value}))} style={{background:C.card2,color:C.white,border:`1.5px solid ${C.border}`,borderRadius:11,padding:"10px 13px",width:"100%",fontSize:14,outline:"none"}}>
+          <option value="">— No batch yet —</option>
+          {batches.map(b=><option key={b.id} value={b.id}>{b.name}</option>)}
+        </select>
+      </div>
+      <FInput label="Notes" type="textarea" rows={2} value={form.notes} onChange={e=>setForm(p=>({...p,notes:e.target.value}))} placeholder="Coach observations…"/>
+      <Btn full onClick={register} disabled={uploading} style={{animation:"pulse 2s infinite"}}>{uploading?"⟳ Saving…":"⚔️ REGISTER WARRIOR"}</Btn>
+    </div>
+  );
+
+  /* ── ATTENDANCE ── */
+  if(view==="att") return(
+    <div style={{padding:"14px",paddingBottom:10}} className="fa">
+      <button onClick={()=>setView("list")} style={BST}>← Back</button>
+      <SecHead title="MARK ATTENDANCE"/>
+      <FInput label="Date" type="date" value={attDate} onChange={e=>setAttDate(e.target.value)}/>
+      {students.length===0&&<div style={{color:C.muted,textAlign:"center",padding:30}}>No students registered</div>}
+      {students.map(s=>{
+        const rec=getAtt(s.id,attDate);const present=rec?.present||false;
+        return(
+          <Card key={s.id} style={{padding:"11px 13px",marginBottom:8,borderLeft:`3px solid ${present?C.green:C.border}`}}>
+            <div style={{display:"flex",alignItems:"center",gap:11}}>
+              <Av name={s.name} photo={s.photo} size={40}/>
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{fontWeight:800,fontSize:14}}>{s.name}</div>
+                <div style={{color:C.muted,fontSize:12,marginTop:1}}>{(s.disciplines||[]).map(d=>DISC_ICON[d]).join(" ")}</div>
+              </div>
+              <button onClick={()=>toggleAtt(s.id,attDate)}
+                style={{width:42,height:42,borderRadius:11,fontWeight:900,fontSize:18,background:present?"#0d2e1a":"#1a1a1a",color:present?C.green:C.muted,border:`1.5px solid ${present?C.green:C.border}`}}>
+                {present?"✓":"○"}
+              </button>
+            </div>
+          </Card>
+        );
+      })}
+      <Btn full color={C.green} onClick={()=>{showToast("Attendance saved ✓");setView("list");}}>✅ Done</Btn>
+    </div>
+  );
+
+  /* ── STUDENT DETAIL ── */
+  if(view==="det"&&selId){
+    const s=students.find(x=>x.id===selId);
+    if(!s)return<div style={{padding:20,color:C.muted}}>Student not found. <button onClick={()=>setView("list")} style={BST}>← Back</button></div>;
+    return<StuDetail s={s} batches={batches} attendance={attendance} showToast={showToast}
+      onBack={()=>setView("list")} onDelete={async()=>{await fsDelete("students",s.id);setView("list");showToast("Student removed","info");}}
+      onPhotoChange={handlePhotoUpdate} uploading={uploading}/>;
+  }
+
+  /* ── LIST ── */
+  return(
+    <div style={{padding:"14px"}} className="fa">
+      <div style={{display:"flex",gap:8,marginBottom:12,flexWrap:"wrap"}}>
+        <Btn onClick={()=>setView("add")} sm>➕ Register</Btn>
+        <Btn onClick={()=>setView("att")} color={C.green} sm>✅ Attendance</Btn>
+        <Btn onClick={()=>setShowBatch(true)} color={C.blue} sm>🏷️ Batches</Btn>
+      </div>
+      <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="🔍 Search students…"
+        style={{background:C.card2,color:C.white,border:`1.5px solid ${C.border}`,borderRadius:11,padding:"10px 13px",width:"100%",fontSize:14,outline:"none",marginBottom:12}}/>
+      <SecHead title={`STUDENTS (${students.length})`}/>
+      {filtered.length===0&&<div style={{textAlign:"center",padding:"40px 0",color:C.muted}}><div style={{fontSize:42,marginBottom:10}}>👥</div>{students.length===0?"No students yet — tap Register":"No results"}</div>}
+      {filtered.map(s=>{
+        const batch=batches.find(b=>b.id===s.batchId);
+        return(
+          <Card key={s.id} onClick={()=>{setSelId(s.id);setView("det");}} style={{padding:"12px",marginBottom:9,cursor:"pointer",borderLeft:`3px solid ${C.red}`}}>
+            <div style={{display:"flex",gap:11,alignItems:"center"}}>
+              <Av name={s.name} photo={s.photo} size={46}/>
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{fontWeight:900,fontSize:15}}>{s.name}</div>
+                <div style={{color:C.muted,fontSize:12,marginTop:2}}>Age {s.age} · {(s.disciplines||[]).map(d=>DISC_ICON[d]).join(" ")}</div>
+                <div style={{marginTop:5,display:"flex",gap:5,flexWrap:"wrap"}}>{(s.disciplines||[]).map(d=><Pill key={d} label={s.belts?.[d]||""} small/>)}</div>
+              </div>
+              <div style={{textAlign:"right",flexShrink:0}}>
+                <div style={{fontSize:12,color:C.gold,fontWeight:800}}>🏆 {s.achievements?.length||0}</div>
+                {batch&&<div style={{fontSize:10,color:C.blue,fontWeight:700,marginTop:3}}>{batch.name}</div>}
+              </div>
+            </div>
+          </Card>
+        );
+      })}
+
+      {/* batch manager modal */}
+      {showBatch&&(
+        <div onClick={()=>setShowBatch(false)} style={{position:"fixed",inset:0,background:"#000c",zIndex:900,display:"flex",alignItems:"flex-end",justifyContent:"center"}}>
+          <div onClick={e=>e.stopPropagation()} style={{background:C.card,borderRadius:"20px 20px 0 0",padding:20,width:"100%",maxWidth:430,maxHeight:"70vh",overflowY:"auto"}}>
+            <div style={{fontWeight:900,fontSize:17,letterSpacing:1,marginBottom:14}}>MANAGE BATCHES</div>
+            <div style={{display:"flex",gap:8,marginBottom:14}}>
+              <input value={batchName} onChange={e=>setBatchName(e.target.value)} placeholder="New batch name…"
+                style={{flex:1,background:C.card2,color:C.white,border:`1.5px solid ${C.border}`,borderRadius:10,padding:"9px 12px",fontSize:14,outline:"none"}}/>
+              <Btn onClick={async()=>{if(!batchName.trim())return;await fsAdd("batches",{name:batchName.trim()});setBatchName("");showToast("Batch created");}} sm>Add</Btn>
+            </div>
+            {batches.length===0&&<div style={{color:C.muted,textAlign:"center",padding:"10px 0",fontSize:13}}>No batches yet</div>}
+            {batches.map(b=>(
+              <div key={b.id} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 0",borderBottom:`1px solid ${C.border}`}}>
+                <div style={{flex:1,fontWeight:700}}>🏷️ {b.name}</div>
+                <button onClick={async()=>{await fsDelete("batches",b.id);showToast("Batch removed","info");}} style={{background:"transparent",color:"#b01c1c",fontSize:16}}>🗑</button>
+              </div>
+            ))}
+            <Btn full color={C.blue} onClick={()=>setShowBatch(false)} style={{marginTop:14}}>Close</Btn>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ── Student Detail (no hooks-in-if) ── */
+function StuDetail({s,batches,attendance,showToast,onBack,onDelete,onPhotoChange,uploading}){
+const [edit, setEdit] = useState(false);
+const [form, setForm] = useState(s);
+  const pRef=useRef();
+  const batch=batches.find(b=>b.id===s.batchId);
+  const sAtt=attendance.filter(a=>a.studentId===s.id);
+  const pct=sAtt.length?Math.round(sAtt.filter(a=>a.present).length/sAtt.length*100):0;
+if(edit){
+  return (
+    <div style={{padding:14}}>
+      <button onClick={()=>setEdit(false)} style={BST}>← Cancel</button>
+      <SecHead title="EDIT STUDENT"/>
+
+      <FInput label="Name"
+        value={form.name}
+        onChange={e=>setForm(p=>({...p,name:e.target.value}))}
+      />
+
+      <FInput label="Age"
+        type="number"
+        value={form.age}
+        onChange={e=>setForm(p=>({...p,age:e.target.value}))}
+      />
+
+      <FInput label="Phone"
+        value={form.phone}
+        onChange={e=>setForm(p=>({...p,phone:e.target.value}))}
+      />
+
+      <FInput label="Email"
+        value={form.email}
+        onChange={e=>setForm(p=>({...p,email:e.target.value}))}
+      />
+
+      <FInput label="Address"
+        value={form.address}
+        onChange={e=>setForm(p=>({...p,address:e.target.value}))}
+      />
+
+      <Btn full onClick={async()=>{
+        try{
+          await fsUpdate("students", s.id, {
+            name: form.name,
+            age: Number(form.age),
+            phone: form.phone,
+            email: form.email,
+            address: form.address
+          });
+
+          showToast("Student updated ✅");
+          setEdit(false);
+        }catch(e){
+          console.error(e);
+          showToast("Update failed ❌","error");
+        }
+      }}>
+        💾 Save Changes
+      </Btn>
+    </div>
+  );
+}
+  return(
+    <div style={{paddingBottom:10}} className="fa">
+      <div style={{background:"linear-gradient(180deg,#1e0404,#0c0c0c)",padding:"14px 14px 20px"}}>
+        <button onClick={onBack} style={BST}>← Back</button>
+        <div style={{display:"flex",gap:14,alignItems:"center",marginTop:10}}>
+          <div style={{position:"relative"}}>
+            <Av name={s.name} photo={s.photo} size={72}/>
+            <button onClick={()=>pRef.current.click()} disabled={uploading}
+              style={{position:"absolute",bottom:0,right:0,width:24,height:24,borderRadius:"50%",background:C.red,color:"#fff",fontSize:11,border:`2px solid ${C.bg}`,display:"flex",alignItems:"center",justifyContent:"center",padding:0}}>
+              {uploading?"⟳":"📷"}
+            </button>
+            <input ref={pRef} type="file" accept="image/*" style={{display:"none"}} onChange={e=>onPhotoChange(e,s.id)}/>
+          </div>
+          <div style={{flex:1,minWidth:0}}>
+            <div style={{fontSize:22,fontWeight:900,lineHeight:1}}>{s.name}</div>
+            <div style={{color:C.muted,fontSize:13,marginTop:3}}>Age {s.age} · Joined {fmtDate(s.joinDate)}</div>
+            <div style={{marginTop:6,display:"flex",gap:5,flexWrap:"wrap"}}>{(s.disciplines||[]).map(d=><Pill key={d} label={`${DISC_ICON[d]} ${s.belts?.[d]||""}`} small/>)}</div>
+          </div>
+        </div>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8,marginTop:14}}>
+          {[{icon:"📊",val:`${pct}%`,label:"ATTENDANCE",col:C.green},{icon:"🏆",val:s.achievements?.length||0,label:"AWARDS",col:C.gold},{icon:"🏷️",val:batch?.name||"None",label:"BATCH",col:C.blue}].map(st=>(
+            <Card key={st.label} style={{padding:"10px",textAlign:"center"}}>
+              <div style={{fontSize:18}}>{st.icon}</div>
+              <div style={{fontSize:String(st.val).length>6?12:18,fontWeight:900,color:st.col,lineHeight:1,marginTop:2}}>{st.val}</div>
+              <div style={{fontSize:9,color:C.muted,fontWeight:700,letterSpacing:.4,marginTop:2}}>{st.label}</div>
+            </Card>
+          ))}
+        </div>
+      </div>
+      <div style={{padding:"14px"}}>
+        <Card style={{padding:13,marginBottom:14}}>
+          <div style={{fontSize:10,color:C.muted,fontWeight:800,letterSpacing:1.5,marginBottom:8}}>CONTACT INFO</div>
+          <div style={{fontSize:13,marginBottom:4}}>📱 {s.phone||"—"}</div>
+          <div style={{fontSize:13,marginBottom:4}}>✉️ {s.email||"—"}</div>
+          <div style={{fontSize:13}}>🏠 {s.address||"—"}</div>
+          {s.notes&&<div style={{fontSize:12,color:C.muted,fontStyle:"italic",borderTop:`1px solid ${C.border}`,paddingTop:8,marginTop:8}}>"{s.notes}"</div>}
+        </Card>
+        <SecHead title="ACHIEVEMENTS"/>
+        <AchForm studentId={s.id} showToast={showToast} achievements={s.achievements||[]}/>
+        {(!s.achievements||s.achievements.length===0)&&<div style={{color:C.muted,fontSize:13,textAlign:"center",padding:"10px 0"}}>No achievements yet</div>}
+        {(s.achievements||[]).map((a,i)=>(
+          <Card key={i} style={{padding:"11px 13px",marginBottom:8,borderLeft:`3px solid ${C.red}`,display:"flex",gap:10}}>
+            <div style={{fontSize:26}}>{a.badge}</div>
+            <div><div style={{fontWeight:800,fontSize:14}}>{a.title}</div><div style={{color:C.muted,fontSize:11,marginTop:1}}>{fmtDate(a.date)}</div>{a.desc&&<div style={{fontSize:12,marginTop:4}}>{a.desc}</div>}</div>
+          </Card>
+        ))}
+<button onClick={()=>setEdit(true)}
+  style={{
+    width:"100%",
+    background:"#031a0a",
+    color:"#1f8c4a",
+    borderRadius:12,
+    padding:11,
+    fontWeight:800,
+    fontSize:13,
+    border:"1px solid #1f8c4a44",
+    marginBottom:8
+  }}>
+  ✏️ Edit Student
+</button>
+        <button onClick={onDelete} style={{width:"100%",background:"#1a0303",color:"#b01c1c",borderRadius:12,padding:11,fontWeight:800,fontSize:13,border:"1px solid #b01c1c44",marginTop:8}}>🗑 Remove Student</button>
+      </div>
+    </div>
+  );
+}
+
+/* ── Add Achievement ── */
+function AchForm({studentId,showToast,achievements}){
+  const [open,setOpen]=useState(false);
+  const [f,setF]=useState({title:"",date:todayStr(),badge:"🥇",desc:""});
+  const save=async()=>{
+    if(!f.title){showToast("Title required","error");return;}
+    try{
+      await fsUpdate("students",studentId,{achievements:[...achievements,{...f,id:uid()}]});
+      setF({title:"",date:todayStr(),badge:"🥇",desc:""});setOpen(false);
+      showToast("Achievement added 🏆");
+    }catch{showToast("Error saving","error");}
+  };
+  if(!open) return<button onClick={()=>setOpen(true)} style={{width:"100%",background:"#1a0606",color:C.red,borderRadius:12,padding:"10px",fontWeight:800,fontSize:13,border:`1.5px dashed ${C.red}44`,marginBottom:10}}>+ Add Achievement</button>;
+  return(
+    <Card style={{padding:14,marginBottom:10,border:`1px solid ${C.red}33`}}>
+      <FInput label="Title *" value={f.title} onChange={e=>setF(p=>({...p,title:e.target.value}))} placeholder="Award / achievement title"/>
+      <FInput label="Date" type="date" value={f.date} onChange={e=>setF(p=>({...p,date:e.target.value}))}/>
+      <FInput label="Description" type="textarea" rows={2} value={f.desc} onChange={e=>setF(p=>({...p,desc:e.target.value}))} placeholder="Details…"/>
+      <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:12}}>
+        {BADGES.map(b=><button key={b} onClick={()=>setF(p=>({...p,badge:b}))} style={{fontSize:20,background:f.badge===b?C.red+"44":"transparent",border:`2px solid ${f.badge===b?C.red:"transparent"}`,borderRadius:8,width:38,height:38,display:"flex",alignItems:"center",justifyContent:"center"}}>{b}</button>)}
+      </div>
+      <div style={{display:"flex",gap:8}}><Btn onClick={save} sm>Save</Btn><Btn onClick={()=>setOpen(false)} outline color={C.muted} sm>Cancel</Btn></div>
+    </Card>
+  );
+}
+
+/* ── Admin Schedule ── */
+function ASched({schedules,students,batches,showToast}){
+  const blank={day:"Monday",time:"",discipline:"Silambam",coach:"",batchId:"",batchName:"",studentIds:[],notes:""};
+  const [form,setForm]=useState(blank);
+  const [show,setShow]=useState(false);
+  const [expand,setExpand]=useState(null);
+
+  const add=async()=>{
+    if(!form.time||!form.coach){showToast("Time and Coach required","error");return;}
+    const bn=batches.find(b=>b.id===form.batchId)?.name||"General";
+    try{await fsAdd("schedules",{...form,batchName:bn});setForm(blank);setShow(false);showToast("Session added 📅");}
+    catch{showToast("Error saving session","error");}
+  };
+
+  const del=async(id)=>{try{await fsDelete("schedules",id);showToast("Removed","info");}catch{showToast("Error","error");}};
+
+  const byDay=useMemo(()=>DAYS.reduce((acc,d)=>{const s=schedules.filter(x=>x.day===d);if(s.length)acc[d]=s;return acc;},{}),[schedules]);
+
+  return(
+    <div style={{padding:"14px"}} className="fa">
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:14}}>
+        <SecHead title="SCHEDULE"/>
+        <Btn onClick={()=>setShow(v=>!v)} outline={show} color={show?C.muted:C.red} sm>{show?"✕ Cancel":"+ Session"}</Btn>
+      </div>
+      {show&&(
+        <Card style={{padding:14,marginBottom:14,border:`1px solid ${C.red}33`}}>
+          <div style={{fontWeight:900,fontSize:14,color:C.red,letterSpacing:1,marginBottom:12}}>NEW TRAINING SESSION</div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+            <div style={{marginBottom:12}}>
+              <Lbl>DAY</Lbl>
+              <select value={form.day} onChange={e=>setForm(p=>({...p,day:e.target.value}))} style={{background:C.card2,color:C.white,border:`1.5px solid ${C.border}`,borderRadius:11,padding:"10px 13px",width:"100%",fontSize:14,outline:"none"}}>
+                {DAYS.map(d=><option key={d}>{d}</option>)}
+              </select>
+            </div>
+            <FInput label="Time *" value={form.time} onChange={e=>setForm(p=>({...p,time:e.target.value}))} placeholder="e.g. 6:00 AM"/>
+          </div>
+          <Lbl>DISCIPLINE</Lbl>
+          <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:12}}>
+            {[...DISCIPLINES,"All Disciplines"].map(d=>(
+              <button key={d} onClick={()=>setForm(p=>({...p,discipline:d}))} style={{padding:"5px 10px",borderRadius:20,fontSize:12,fontWeight:800,background:form.discipline===d?C.red:C.card2,color:form.discipline===d?"#fff":C.muted,border:`1px solid ${form.discipline===d?C.red:C.border}`}}>{DISC_ICON[d]||"🥋"} {d}</button>
+            ))}
+          </div>
+          <FInput label="Coach *" value={form.coach} onChange={e=>setForm(p=>({...p,coach:e.target.value}))} placeholder="Master / coach name"/>
+          <div style={{marginBottom:12}}>
+            <Lbl>BATCH</Lbl>
+            <select value={form.batchId} onChange={e=>setForm(p=>({...p,batchId:e.target.value}))} style={{background:C.card2,color:C.white,border:`1.5px solid ${C.border}`,borderRadius:11,padding:"10px 13px",width:"100%",fontSize:14,outline:"none"}}>
+              <option value="">— General / No batch —</option>
+              {batches.map(b=><option key={b.id} value={b.id}>{b.name}</option>)}
+            </select>
+          </div>
+          <Lbl>TAG STUDENTS IN THIS SESSION</Lbl>
+          <div style={{maxHeight:160,overflowY:"auto",border:`1px solid ${C.border}`,borderRadius:11,padding:8,background:C.card2,marginBottom:12}}>
+            {students.length===0&&<div style={{color:C.muted,fontSize:12,padding:"8px 0"}}>No students registered yet</div>}
+            {students.map(s=>{
+              const tagged=form.studentIds.includes(s.id);
+              return(
+                <button key={s.id} onClick={()=>setForm(p=>{const has=p.studentIds.includes(s.id);return{...p,studentIds:has?p.studentIds.filter(x=>x!==s.id):[...p.studentIds,s.id]};})}
+                  style={{width:"100%",display:"flex",alignItems:"center",gap:10,padding:"7px 8px",borderRadius:9,marginBottom:4,background:tagged?C.red+"22":"transparent",border:`1px solid ${tagged?C.red:C.border}`}}>
+                  <Av name={s.name} photo={s.photo} size={28}/>
+                  <div style={{flex:1,textAlign:"left"}}><div style={{fontWeight:800,fontSize:13,color:C.white}}>{s.name}</div><div style={{fontSize:11,color:C.muted}}>{(s.disciplines||[]).join(", ")}</div></div>
+                  <span style={{fontSize:16,color:tagged?C.red:C.muted}}>{tagged?"✓":"○"}</span>
+                </button>
+              );
+            })}
+          </div>
+          <FInput label="Notes (optional)" type="textarea" rows={2} value={form.notes} onChange={e=>setForm(p=>({...p,notes:e.target.value}))} placeholder="Additional notes…"/>
+          <Btn full onClick={add}>✚ Add Session</Btn>
+        </Card>
+      )}
+      {Object.keys(byDay).length===0&&!show&&<div style={{textAlign:"center",padding:"40px 0",color:C.muted}}><div style={{fontSize:42,marginBottom:10}}>📅</div>No sessions yet</div>}
+      {Object.entries(byDay).map(([day,sess])=>(
+        <div key={day} style={{marginBottom:18}}>
+          <div style={{fontSize:11,color:C.red,fontWeight:800,letterSpacing:3,marginBottom:8}}>⚔️ {day.toUpperCase()}</div>
+          {sess.map(s=>(
+            <div key={s.id}>
+              <Card style={{padding:"11px 13px",marginBottom:4,borderLeft:`3px solid ${C.red}`,cursor:"pointer"}} onClick={()=>setExpand(expand===s.id?null:s.id)}>
+                <div style={{display:"flex",alignItems:"center",gap:10}}>
+                  <div style={{background:C.redG,color:C.red,borderRadius:8,padding:"5px 8px",fontSize:11,fontWeight:800,minWidth:64,textAlign:"center"}}>{s.time}</div>
+                  <div style={{flex:1,minWidth:0}}><div style={{fontWeight:800,fontSize:14}}>{DISC_ICON[s.discipline]||"🥋"} {s.discipline}</div><div style={{color:C.muted,fontSize:12,marginTop:1}}>{s.batchName||"General"} · {s.coach}</div></div>
+                  <div style={{display:"flex",gap:6,alignItems:"center",flexShrink:0}}>
+                    <span style={{fontSize:11,color:C.blue,fontWeight:700}}>👥{s.studentIds?.length||0}</span>
+                    <button onClick={e=>{e.stopPropagation();del(s.id);}} style={{background:"#1a0303",color:"#b01c1c",width:30,height:30,borderRadius:8,fontSize:14,border:"1px solid #b01c1c44",display:"flex",alignItems:"center",justifyContent:"center"}}>🗑</button>
+                  </div>
+                </div>
+              </Card>
+              {expand===s.id&&(
+                <div style={{background:C.card2,borderRadius:"0 0 12px 12px",padding:"10px 13px",marginBottom:6,border:`1px solid ${C.border}`,borderTop:"none"}}>
+                  {s.notes&&<div style={{fontSize:12,color:C.muted,fontStyle:"italic",marginBottom:8}}>📝 {s.notes}</div>}
+                  <div style={{fontSize:10,color:C.muted,fontWeight:800,letterSpacing:1.2,marginBottom:8}}>STUDENTS IN SESSION</div>
+                  {(!s.studentIds||s.studentIds.length===0)
+                    ?<div style={{color:C.muted,fontSize:12}}>No students tagged</div>
+                    :<div style={{display:"flex",flexWrap:"wrap",gap:6}}>
+                      {s.studentIds.map(sid=>{const st=students.find(x=>x.id===sid);return st?(<div key={sid} style={{display:"flex",alignItems:"center",gap:5,background:C.card,borderRadius:20,padding:"3px 10px 3px 5px",border:`1px solid ${C.border}`}}><Av name={st.name} photo={st.photo} size={20}/><span style={{fontSize:12,fontWeight:700}}>{st.name}</span></div>):null;})}
+                    </div>
+                  }
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/* ── Admin Gallery ── */
+function AGallery({gallery,students,showToast}){
+  const [show,setShow]=useState(false);
+  const [f,setF]=useState({studentId:"",caption:"",date:todayStr(),src:null,uploading:false});
+  const [lb,setLb]=useState(null);
+  const fileRef=useRef();
+
+  const onFile=async e=>{
+    const file=e.target.files[0];if(!file)return;
+    if(file.size>8*1024*1024){showToast("Max 8MB image","error");return;}
+    setF(p=>({...p,uploading:true}));showToast("Uploading…","info");
+    const fd=new FormData();fd.append("file",file);fd.append("upload_preset",UPLOAD_PRESET);
+    try{
+      const res=await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`,{method:"POST",body:fd});
+      const d=await res.json();
+      if(d.secure_url){setF(p=>({...p,src:d.secure_url,uploading:false}));showToast("Image ready ✓");}
+      else{setF(p=>({...p,uploading:false}));showToast("Upload failed","error");}
+    }catch{setF(p=>({...p,uploading:false}));showToast("Upload error","error");}
+  };
+
+  const upload=async()=>{
+    if(!f.src){showToast("Select a photo first","error");return;}
+    const stu=students.find(s=>s.id===f.studentId);
+    try{
+      await fsAdd("gallery",{studentId:f.studentId,studentName:stu?.name||"Club",caption:f.caption||"Photo",date:f.date,src:f.src});
+      setF({studentId:"",caption:"",date:todayStr(),src:null,uploading:false});setShow(false);
+      showToast("Photo added to gallery 📸");
+    }catch{showToast("Error saving photo","error");}
+  };
+
+  const deletePhoto=async id=>{
+    try{await fsDelete("gallery",id);setLb(null);showToast("Photo deleted","info");}
+    catch{showToast("Error","error");}
+  };
+
+  return(
+    <div style={{padding:"14px"}} className="fa">
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:14}}>
+        <SecHead title={`GALLERY (${gallery.length})`}/>
+        <Btn onClick={()=>setShow(v=>!v)} outline={show} color={show?C.muted:C.red} sm>{show?"✕ Cancel":"+ Upload"}</Btn>
+      </div>
+      {show&&(
+        <Card style={{padding:14,marginBottom:14,border:`1px solid ${C.red}33`}}>
+          <div onClick={()=>!f.uploading&&fileRef.current.click()}
+            style={{background:C.card2,border:`2px dashed ${f.src?C.red:C.border}`,borderRadius:13,height:150,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",cursor:f.uploading?"wait":"pointer",overflow:"hidden",marginBottom:12,position:"relative"}}>
+            {f.uploading?<><div className="spinner"/><div style={{color:C.muted,fontSize:12,marginTop:8}}>Uploading…</div></>
+              :f.src?<img src={f.src} style={{width:"100%",height:"100%",objectFit:"cover",position:"absolute",inset:0}}/>
+              :<><div style={{fontSize:38}}>📸</div><div style={{color:C.muted,fontSize:12,fontWeight:700,marginTop:6}}>Tap to select photo</div></>}
+          </div>
+          <input ref={fileRef} type="file" accept="image/*" style={{display:"none"}} onChange={onFile}/>
+          <div style={{marginBottom:10}}>
+            <Lbl>TAG STUDENT (optional)</Lbl>
+            <select value={f.studentId} onChange={e=>setF(p=>({...p,studentId:e.target.value}))} style={{background:C.card2,color:C.white,border:`1.5px solid ${C.border}`,borderRadius:11,padding:"10px 13px",width:"100%",fontSize:14,outline:"none"}}>
+              <option value="">— Club / General Photo —</option>
+              {students.map(s=><option key={s.id} value={s.id}>{s.name}</option>)}
+            </select>
+          </div>
+          <FInput label="Caption" value={f.caption} onChange={e=>setF(p=>({...p,caption:e.target.value}))} placeholder="Event / occasion"/>
+          <FInput label="Date" type="date" value={f.date} onChange={e=>setF(p=>({...p,date:e.target.value}))}/>
+          <Btn full onClick={upload} disabled={f.uploading||!f.src}>📸 Add to Gallery</Btn>
+        </Card>
+      )}
+      {gallery.length===0&&!show&&<div style={{textAlign:"center",padding:"50px 0",color:C.muted}}><div style={{fontSize:50,marginBottom:12}}>📸</div>No photos yet</div>}
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:5}}>
+        {gallery.map(g=>(
+          <div key={g.id} onClick={()=>setLb(g)} style={{aspectRatio:"1",borderRadius:10,overflow:"hidden",border:`1.5px solid ${C.border}`,cursor:"pointer",position:"relative"}}>
+            <img src={g.src} alt={g.caption} style={{width:"100%",height:"100%",objectFit:"cover"}}/>
+            <div style={{position:"absolute",bottom:0,left:0,right:0,background:"linear-gradient(transparent,#000c)",padding:"14px 4px 4px",fontSize:9,color:"#fff",fontWeight:700,overflow:"hidden",whiteSpace:"nowrap",textOverflow:"ellipsis",textAlign:"center"}}>{g.caption}</div>
+          </div>
+        ))}
+      </div>
+      {lb&&(
+        <div onClick={()=>setLb(null)} style={{position:"fixed",inset:0,background:"#000e",zIndex:9000,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
+          <div onClick={e=>e.stopPropagation()} style={{background:C.card,borderRadius:18,overflow:"hidden",maxWidth:400,width:"100%"}}>
+            <img src={lb.src} style={{width:"100%",maxHeight:320,objectFit:"cover",display:"block"}}/>
+            <div style={{padding:"13px 15px"}}>
+              <div style={{fontWeight:800,fontSize:15}}>{lb.caption}</div>
+              <div style={{color:C.muted,fontSize:12,marginTop:3}}>{lb.studentName} · {fmtDate(lb.date)}</div>
+              <div style={{display:"flex",gap:8,marginTop:12}}>
+                <button onClick={()=>deletePhoto(lb.id)} style={{flex:1,background:"#1a0303",color:"#b01c1c",borderRadius:11,padding:10,fontWeight:800,fontSize:13,border:"1px solid #b01c1c44"}}>🗑 Delete</button>
+                <button onClick={()=>setLb(null)} style={{flex:1,background:C.card2,color:C.muted,borderRadius:11,padding:10,fontWeight:800,fontSize:13,border:`1px solid ${C.border}`}}>✕ Close</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ── Admin Finance ── */
+function AFin({fees,students,showToast}){
+  const [view,setView]=useState("list");
+  const [f,setF]=useState({studentId:"",amount:"",month:MONTHS[new Date().getMonth()],year:String(new Date().getFullYear())});
+  const [filter,setFilter]=useState("all");
+
+  const add=async()=>{
+    if(!f.studentId||!f.amount){showToast("Student and Amount required","error");return;}
+    try{await fsAdd("fees",{studentId:f.studentId,amount:parseFloat(f.amount),month:f.month,year:f.year,paid:false,paidDate:""});setF(p=>({...p,amount:"",studentId:""}));setView("list");showToast("Fee record added 💰");}
+    catch{showToast("Error saving","error");}
+  };
+
+  const togglePaid=async(fe)=>{
+    try{await fsUpdate("fees",fe.id,{paid:!fe.paid,paidDate:!fe.paid?todayStr():""});}
+    catch{showToast("Error updating","error");}
+  };
+
+  const visible=fees.filter(fe=>filter==="all"||(filter==="paid"?fe.paid:!fe.paid));
+  const collected=fees.filter(f=>f.paid).reduce((s,x)=>s+(x.amount||0),0);
+  const pending=fees.filter(f=>!f.paid).reduce((s,x)=>s+(x.amount||0),0);
+
+  if(view==="add") return(
+    <div style={{padding:"14px"}} className="fa">
+      <button onClick={()=>setView("list")} style={BST}>← Back</button>
+      <SecHead title="ADD FEE RECORD"/>
+      <div style={{marginBottom:12}}>
+        <Lbl>STUDENT *</Lbl>
+        <select value={f.studentId} onChange={e=>setF(p=>({...p,studentId:e.target.value}))} style={{background:C.card2,color:C.white,border:`1.5px solid ${C.border}`,borderRadius:11,padding:"10px 13px",width:"100%",fontSize:14,outline:"none"}}>
+          <option value="">Select student…</option>
+          {students.map(s=><option key={s.id} value={s.id}>{s.name}</option>)}
+        </select>
+      </div>
+      <FInput label="Amount (₹) *" type="number" value={f.amount} onChange={e=>setF(p=>({...p,amount:e.target.value}))} placeholder="e.g. 500"/>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+        <div style={{marginBottom:12}}>
+          <Lbl>MONTH</Lbl>
+          <select value={f.month} onChange={e=>setF(p=>({...p,month:e.target.value}))} style={{background:C.card2,color:C.white,border:`1.5px solid ${C.border}`,borderRadius:11,padding:"10px 13px",width:"100%",fontSize:14,outline:"none"}}>
+            {MONTHS.map(m=><option key={m}>{m}</option>)}
+          </select>
+        </div>
+        <FInput label="Year" type="number" value={f.year} onChange={e=>setF(p=>({...p,year:e.target.value}))} placeholder="2025"/>
+      </div>
+      <Btn full onClick={add}>💰 Add Fee Record</Btn>
+    </div>
+  );
+
+  return(
+    <div style={{padding:"14px"}} className="fa">
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:14}}>
+        {[{label:"TOTAL",val:`₹${fees.reduce((s,x)=>s+(x.amount||0),0)}`,col:C.white},{label:"COLLECTED",val:`₹${collected}`,col:C.green},{label:"PENDING",val:`₹${pending}`,col:C.red}].map(s=>(
+          <Card key={s.label} style={{padding:"10px",textAlign:"center"}}><div style={{fontSize:17,fontWeight:900,color:s.col}}>{s.val}</div><div style={{fontSize:9,color:C.muted,fontWeight:700,letterSpacing:.4,marginTop:3}}>{s.label}</div></Card>
+        ))}
+      </div>
+      <div style={{display:"flex",gap:8,marginBottom:14,alignItems:"center"}}>
+        <div style={{flex:1,display:"flex",background:C.card2,borderRadius:11,padding:3,gap:3}}>
+          {["all","paid","pending"].map(flt=><button key={flt} onClick={()=>setFilter(flt)} style={{flex:1,padding:"7px 0",borderRadius:8,fontSize:12,fontWeight:800,background:filter===flt?C.red:"transparent",color:filter===flt?"#fff":C.muted,border:"none",textTransform:"capitalize"}}>{flt}</button>)}
+        </div>
+        <Btn onClick={()=>setView("add")} sm>+ Add</Btn>
+      </div>
+      <SecHead title={`FEE RECORDS (${visible.length})`}/>
+      {visible.length===0&&<div style={{textAlign:"center",padding:"30px 0",color:C.muted}}><div style={{fontSize:36,marginBottom:8}}>💰</div>No records</div>}
+      {visible.map(fe=>{
+        const stu=students.find(s=>s.id===fe.studentId);
+        return(
+          <Card key={fe.id} style={{padding:"12px",marginBottom:8,display:"flex",alignItems:"center",gap:11,borderLeft:`3px solid ${fe.paid?C.green:C.red}`}}>
+            <Av name={stu?.name||"?"} photo={stu?.photo} size={40}/>
+            <div style={{flex:1,minWidth:0}}><div style={{fontWeight:800,fontSize:14}}>{stu?.name||"Unknown"}</div><div style={{color:C.muted,fontSize:12,marginTop:1}}>{fe.month} {fe.year}</div>{fe.paid&&fe.paidDate&&<div style={{fontSize:11,color:C.green,marginTop:2}}>Paid {fmtDate(fe.paidDate)}</div>}</div>
+            <div style={{textAlign:"right",flexShrink:0}}>
+              <div style={{fontSize:18,fontWeight:900,color:fe.paid?C.green:C.red}}>₹{fe.amount}</div>
+              <button onClick={()=>togglePaid(fe)} style={{marginTop:5,padding:"4px 10px",borderRadius:8,fontSize:11,fontWeight:800,background:fe.paid?"#0d2e1a":"#1a0404",color:fe.paid?C.green:C.red,border:`1px solid ${fe.paid?C.green:C.red}44`}}>{fe.paid?"✓ Paid":"Mark Paid"}</button>
+            </div>
+          </Card>
+        );
+      })}
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════════
+   PARENT APP
+══════════════════════════════════════════════ */
+function ParentApp({showToast,logout}){
+const [showNav, setShowNav] = useState(true);
+  const [tab,setTab]=useState("home");
+  const [selStu,setSelStu]=useState(null);
+  const [lb,setLb]=useState(null);
+
+  const [students, stuLoad] =useCol("students");
+  const [batches]           =useCol("batches","name");
+  const [schedules,schLoad] =useCol("schedules","day");
+  const [gallery,  galLoad] =useCol("gallery");
+  const [attendance,attLoad]=useCol("attendance","date");
+  const [fees,     feeLoad] =useCol("fees");
+	const lastScroll = useRef(0);
+
+useEffect(() => {
+  const handleScroll = () => {
+    const current = window.scrollY;
+
+    if (current > lastScroll.current && current > 50) {
+      setShowNav(false);
+    } else {
+      setShowNav(true);
+    }
+
+    lastScroll.current = current;
+  };
+
+  window.addEventListener("scroll", handleScroll);
+  return () => window.removeEventListener("scroll", handleScroll);
+}, []);
+  const loading=stuLoad||schLoad||galLoad||attLoad||feeLoad;
+
+  const TABS=[{id:"home",icon:"🏠",label:"Home"},{id:"sched",icon:"📅",label:"Schedule"},{id:"stu",icon:"👥",label:"Students"},{id:"gallery",icon:"📸",label:"Gallery"}];
+
+  return(
+    <div style={{display:"flex",flexDirection:"column",height:"100vh",background:C.bg}}>
+      <div style={{background:"linear-gradient(180deg,#1e0404,#0c0c0c)",padding:"10px 14px",borderBottom:"1px solid #2a0606",flexShrink:0,display:"flex",alignItems:"center",gap:10}}>
+        <VMLogo size={38}/>
+        <div style={{flex:1,lineHeight:1}}><div style={{fontSize:17,fontWeight:900,letterSpacing:2}}>VM SILAMBAM</div><div style={{fontSize:10,color:C.red,fontWeight:800,letterSpacing:3}}>&amp; KARATE CLUB</div></div>
+        <button onClick={logout} style={{background:"transparent",color:C.muted,fontSize:11,fontWeight:700,border:`1px solid ${C.border}`,borderRadius:8,padding:"5px 10px"}}>Exit</button>
+      </div>
+
+     <div style={{
+  flex:1,
+  overflowY:"auto",
+  paddingBottom:"calc(100px + env(safe-area-inset-bottom))"  }}>       {loading?<Loader/>:<>
+          {tab==="home"   &&<PHome students={students} schedules={schedules} attendance={attendance} fees={fees} setTab={setTab}/>}
+          {tab==="sched"  &&<PSched schedules={schedules} students={students}/>}
+          {tab==="stu"    &&!selStu&&<PStuList students={students} batches={batches} attendance={attendance} fees={fees} onSel={s=>setSelStu(s)}/>}
+          {tab==="stu"    &&selStu&&<PStuDet student={students.find(x=>x.id===selStu.id)||selStu} batches={batches} attendance={attendance} fees={fees} onBack={()=>setSelStu(null)}/>}
+          {tab==="gallery"&&<PGallery gallery={gallery} lb={lb} setLb={setLb}/>}
+        </>}
+        <div style={{height:70}}/>
+      </div>
+
+   <div style={{
+  position:"fixed",
+  bottom: showNav ? 0 : -90,
+  left:0,
+  right:0,
+  background:"#0e0e0ef5",
+  borderTop:"1px solid #1e0404",
+  padding:"6px 0 calc(10px + env(safe-area-inset-bottom))",
+  display:"flex",
+  justifyContent:"space-around",
+  zIndex:1000,
+  transition:"bottom 0.3s ease"
+}}>
+        {TABS.map(t=><button key={t.id} onClick={()=>{setTab(t.id);setSelStu(null);}} style={{display:"flex",flexDirection:"column",alignItems:"center",gap:2,background:"transparent",padding:"4px 8px",color:tab===t.id?C.red:C.muted}}><span style={{fontSize:20}}>{t.icon}</span><span style={{fontSize:9,fontWeight:800,letterSpacing:.4}}>{t.label}</span></button>)}
+      </div>
+    </div>
+  );
+}
+
+function PHome({students,schedules,attendance,fees,setTab}){
+  const presentToday=attendance.filter(a=>a.date===todayStr()&&a.present).length;
+  const pendingFees=fees.filter(f=>!f.paid).length;
+  return(
+    <div style={{padding:"14px"}} className="fa">
+      <SecHead title="WELCOME"/>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:16}}>
+        {[{icon:"👥",val:students.length,label:"STUDENTS",col:C.red,t:"stu"},{icon:"📅",val:schedules.length,label:"SESSIONS",col:C.blue,t:"sched"},{icon:"✅",val:presentToday,label:"PRESENT TODAY",col:C.green,t:"stu"},{icon:"💸",val:pendingFees,label:"FEES DUE",col:C.gold,t:"stu"}].map(s=>(
+          <Card key={s.label} onClick={()=>setTab(s.t)} style={{padding:"14px 12px",cursor:"pointer"}}>
+            <div style={{fontSize:22}}>{s.icon}</div>
+            <div style={{fontSize:26,fontWeight:900,color:s.col,lineHeight:1,marginTop:4}}>{s.val}</div>
+            <div style={{fontSize:10,color:C.muted,fontWeight:700,letterSpacing:.6,marginTop:2}}>{s.label}</div>
+          </Card>
+        ))}
+      </div>
+      <SecHead title="TODAY'S SESSIONS"/>
+      {schedules.slice(0,4).map(s=>(
+        <Card key={s.id} style={{padding:"11px 13px",marginBottom:8,borderLeft:`3px solid ${C.red}`}}>
+          <div style={{display:"flex",alignItems:"center",gap:10}}>
+            <div style={{background:C.redG,color:C.red,borderRadius:8,padding:"5px 8px",fontSize:11,fontWeight:800,minWidth:64,textAlign:"center"}}>{s.time}</div>
+            <div style={{flex:1}}><div style={{fontWeight:800,fontSize:14}}>{DISC_ICON[s.discipline]||"🥋"} {s.discipline}</div><div style={{color:C.muted,fontSize:12,marginTop:1}}>{s.batchName||"General"} · {s.coach}</div></div>
+          </div>
+        </Card>
+      ))}
+      {schedules.length===0&&<div style={{color:C.muted,textAlign:"center",padding:"18px 0",fontSize:13}}>No sessions scheduled</div>}
+    </div>
+  );
+}
+
+function PSched({schedules,students}){
+  const [exp,setExp]=useState(null);
+  const byDay=useMemo(()=>DAYS.reduce((acc,d)=>{const s=schedules.filter(x=>x.day===d);if(s.length)acc[d]=s;return acc;},{}),[schedules]);
+  return(
+    <div style={{padding:"14px"}} className="fa">
+      <SecHead title="TRAINING SCHEDULE"/>
+      {Object.keys(byDay).length===0&&<div style={{textAlign:"center",padding:"40px 0",color:C.muted}}><div style={{fontSize:42,marginBottom:10}}>📅</div>No sessions yet</div>}
+      {Object.entries(byDay).map(([day,sess])=>(
+        <div key={day} style={{marginBottom:18}}>
+          <div style={{fontSize:11,color:C.red,fontWeight:800,letterSpacing:3,marginBottom:8}}>⚔️ {day.toUpperCase()}</div>
+          {sess.map(s=>(
+            <div key={s.id}>
+              <Card style={{padding:"11px 13px",marginBottom:4,borderLeft:`3px solid ${C.red}`,cursor:"pointer"}} onClick={()=>setExp(exp===s.id?null:s.id)}>
+                <div style={{display:"flex",alignItems:"center",gap:10}}>
+                  <div style={{background:C.redG,color:C.red,borderRadius:8,padding:"5px 8px",fontSize:11,fontWeight:800,minWidth:64,textAlign:"center"}}>{s.time}</div>
+                  <div style={{flex:1}}><div style={{fontWeight:800,fontSize:14}}>{DISC_ICON[s.discipline]||"🥋"} {s.discipline}</div><div style={{color:C.muted,fontSize:12,marginTop:1}}>{s.batchName||"General"} · {s.coach}</div></div>
+                  <span style={{fontSize:11,color:C.blue,fontWeight:700}}>👥{s.studentIds?.length||0}</span>
+                </div>
+              </Card>
+              {exp===s.id&&(
+                <div style={{background:C.card2,borderRadius:"0 0 12px 12px",padding:"10px 13px",marginBottom:6,border:`1px solid ${C.border}`,borderTop:"none"}}>
+                  {s.notes&&<div style={{fontSize:12,color:C.muted,fontStyle:"italic",marginBottom:8}}>📝 {s.notes}</div>}
+                  <div style={{fontSize:10,color:C.muted,fontWeight:800,letterSpacing:1.2,marginBottom:8}}>STUDENTS IN SESSION</div>
+                  <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
+                    {s.studentIds?.map(sid=>{const st=students.find(x=>x.id===sid);return st?<Pill key={sid} label={st.name} small/>:null;})}
+                    {(!s.studentIds||!s.studentIds.length)&&<div style={{color:C.muted,fontSize:12}}>None tagged</div>}
+                  </div>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function PStuList({students,batches,attendance,fees,onSel}){
+  const [search,setSearch]=useState("");
+  const filtered=useMemo(()=>students.filter(s=>(s.name||"").toLowerCase().includes(search.toLowerCase())),[students,search]);
+  return(
+    <div style={{padding:"14px"}} className="fa">
+      <SecHead title={`STUDENTS (${students.length})`}/>
+      <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="🔍 Search name…"
+        style={{background:C.card2,color:C.white,border:`1.5px solid ${C.border}`,borderRadius:11,padding:"10px 13px",width:"100%",fontSize:14,outline:"none",marginBottom:12}}/>
+      {filtered.length===0&&<div style={{color:C.muted,textAlign:"center",padding:"30px 0"}}>No students found</div>}
+      {filtered.map(s=>{
+        const sAtt=attendance.filter(a=>a.studentId===s.id);
+        const pct=sAtt.length?Math.round(sAtt.filter(a=>a.present).length/sAtt.length*100):0;
+        const pend=fees.filter(f=>f.studentId===s.id&&!f.paid).length;
+        const batch=batches.find(b=>b.id===s.batchId);
+        return(
+          <Card key={s.id} onClick={()=>onSel(s)} style={{padding:"12px",marginBottom:9,cursor:"pointer",borderLeft:`3px solid ${C.red}`}}>
+            <div style={{display:"flex",gap:11,alignItems:"center"}}>
+              <Av name={s.name} photo={s.photo} size={46}/>
+              <div style={{flex:1,minWidth:0}}><div style={{fontWeight:900,fontSize:15}}>{s.name}</div><div style={{color:C.muted,fontSize:12,marginTop:2}}>Age {s.age} · {(s.disciplines||[]).map(d=>DISC_ICON[d]).join(" ")}</div>{batch&&<Pill label={batch.name} color={C.blue} small/>}</div>
+              <div style={{textAlign:"right",flexShrink:0}}><div style={{fontSize:12,color:C.green,fontWeight:800}}>📊 {pct}%</div>{pend>0&&<div style={{fontSize:11,color:C.red,fontWeight:700,marginTop:3}}>💸 {pend} due</div>}</div>
+            </div>
+          </Card>
+        );
+      })}
+    </div>
+  );
+}
+
+function PStuDet({student:s,batches,attendance,fees,onBack}){
+  const [sub,setSub]=useState("info");
+  const sAtt=useMemo(()=>attendance.filter(a=>a.studentId===s.id).sort((a,b)=>b.date.localeCompare(a.date)),[attendance,s.id]);
+  const pct=sAtt.length?Math.round(sAtt.filter(a=>a.present).length/sAtt.length*100):0;
+  const sFees=useMemo(()=>fees.filter(f=>f.studentId===s.id),[fees,s.id]);
+  const batch=batches.find(b=>b.id===s.batchId);
+  const SUBS=["info","attendance","achievements","fees"];
+  return(
+    <div style={{paddingBottom:10}} className="fa">
+      <div style={{background:"linear-gradient(180deg,#1e0404,#0c0c0c)",padding:"14px 14px 20px"}}>
+        <button onClick={onBack} style={BST}>← Back</button>
+        <div style={{display:"flex",gap:12,alignItems:"center",marginTop:10}}>
+          <Av name={s.name} photo={s.photo} size={66}/>
+          <div><div style={{fontSize:21,fontWeight:900,lineHeight:1}}>{s.name}</div><div style={{color:C.muted,fontSize:13,marginTop:3}}>Age {s.age}</div>{batch&&<Pill label={batch.name} color={C.blue} small/>}</div>
+        </div>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8,marginTop:12}}>
+          {[{icon:"📊",val:`${pct}%`,label:"ATTEND.",col:C.green},{icon:"🏆",val:s.achievements?.length||0,label:"AWARDS",col:C.gold},{icon:"💸",val:sFees.filter(f=>!f.paid).length,label:"DUE",col:C.red}].map(st=>(
+            <Card key={st.label} style={{padding:"9px",textAlign:"center"}}><div style={{fontSize:16}}>{st.icon}</div><div style={{fontSize:17,fontWeight:900,color:st.col,lineHeight:1,marginTop:2}}>{st.val}</div><div style={{fontSize:9,color:C.muted,fontWeight:700,marginTop:2}}>{st.label}</div></Card>
+          ))}
+        </div>
+      </div>
+      <div style={{display:"flex",padding:"10px 14px 0",gap:4}}>
+        {SUBS.map(t=><button key={t} onClick={()=>setSub(t)} style={{flex:1,padding:"8px 2px",borderRadius:9,fontSize:10,fontWeight:800,background:sub===t?C.red:C.card2,color:sub===t?"#fff":C.muted,border:`1px solid ${sub===t?C.red:C.border}`,textTransform:"capitalize"}}>{t}</button>)}
+      </div>
+      <div style={{padding:"14px"}}>
+        {sub==="info"&&(
+          <>
+            <Card style={{padding:13,marginBottom:12}}>
+              <div style={{fontSize:10,color:C.muted,fontWeight:800,letterSpacing:1.5,marginBottom:8}}>CONTACT</div>
+              <div style={{fontSize:13,marginBottom:4}}>📱 {s.phone||"—"}</div>
+              <div style={{fontSize:13,marginBottom:4}}>✉️ {s.email||"—"}</div>
+              <div style={{fontSize:13}}>🏠 {s.address||"—"}</div>
+            </Card>
+            <SecHead title="DISCIPLINES"/>
+            {(s.disciplines||[]).map(d=>(
+              <Card key={d} style={{padding:"10px 13px",marginBottom:8,display:"flex",alignItems:"center",gap:10,borderLeft:`3px solid ${C.red}`}}>
+                <div style={{fontSize:24}}>{DISC_ICON[d]}</div>
+                <div><div style={{fontWeight:800,fontSize:14}}>{d}</div><Pill label={s.belts?.[d]||"—"} small/></div>
+              </Card>
+            ))}
+          </>
+        )}
+        {sub==="attendance"&&(
+          <>
+            <div style={{background:C.card2,borderRadius:12,padding:"11px 13px",marginBottom:12}}>
+              <span style={{fontWeight:800,color:C.green,fontSize:18}}>{pct}% attendance</span>
+              <span style={{color:C.muted,fontSize:12,marginLeft:8}}>{sAtt.filter(a=>a.present).length}/{sAtt.length} days</span>
+            </div>
+            {sAtt.length===0&&<div style={{color:C.muted,textAlign:"center",padding:"20px 0"}}>No records yet</div>}
+            {sAtt.slice(0,40).map(a=>(
+              <Card key={a.id} style={{padding:"9px 12px",marginBottom:6,display:"flex",alignItems:"center",gap:10}}>
+                <div style={{fontSize:16,color:a.present?C.green:C.red}}>{a.present?"✅":"❌"}</div>
+                <div style={{flex:1}}><div style={{fontWeight:700,fontSize:13}}>{fmtDate(a.date)}</div></div>
+                <Pill label={a.present?"Present":"Absent"} color={a.present?C.green:C.red} small/>
+              </Card>
+            ))}
+          </>
+        )}
+        {sub==="achievements"&&(
+          <>
+            {(!s.achievements||s.achievements.length===0)&&<div style={{color:C.muted,textAlign:"center",padding:"20px 0"}}>No achievements yet</div>}
+            {(s.achievements||[]).map((a,i)=>(
+              <Card key={i} style={{padding:"11px 13px",marginBottom:8,display:"flex",gap:10,borderLeft:`3px solid ${C.red}`}}>
+                <div style={{fontSize:26}}>{a.badge}</div>
+                <div><div style={{fontWeight:800,fontSize:14}}>{a.title}</div><div style={{color:C.muted,fontSize:11,marginTop:2}}>{fmtDate(a.date)}</div>{a.desc&&<div style={{fontSize:12,marginTop:4}}>{a.desc}</div>}</div>
+              </Card>
+            ))}
+          </>
+        )}
+        {sub==="fees"&&(
+          <>
+            {sFees.length===0&&<div style={{color:C.muted,textAlign:"center",padding:"20px 0"}}>No fee records</div>}
+            {sFees.map(f=>(
+              <Card key={f.id} style={{padding:"11px 13px",marginBottom:8,display:"flex",alignItems:"center",gap:10,borderLeft:`3px solid ${f.paid?C.green:C.red}`}}>
+                <div style={{fontSize:22}}>{f.paid?"💚":"💸"}</div>
+                <div style={{flex:1}}><div style={{fontWeight:800,fontSize:14}}>{f.month} {f.year}</div>{f.paid&&f.paidDate&&<div style={{fontSize:11,color:C.green}}>Paid {fmtDate(f.paidDate)}</div>}</div>
+                <div style={{textAlign:"right"}}><div style={{fontSize:18,fontWeight:900,color:f.paid?C.green:C.red}}>₹{f.amount}</div><Pill label={f.paid?"Paid":"Pending"} color={f.paid?C.green:C.red} small/></div>
+              </Card>
+            ))}
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function PGallery({gallery,lb,setLb}){
+  return(
+    <div style={{padding:"14px"}} className="fa">
+      <SecHead title={`GALLERY (${gallery.length})`}/>
+      {gallery.length===0&&<div style={{textAlign:"center",padding:"50px 0",color:C.muted}}><div style={{fontSize:50,marginBottom:12}}>📸</div>No photos yet</div>}
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:5}}>
+        {gallery.map(g=>(
+          <div key={g.id} onClick={()=>setLb(g)} style={{aspectRatio:"1",borderRadius:10,overflow:"hidden",border:`1.5px solid ${C.border}`,cursor:"pointer",position:"relative"}}>
+            <img src={g.src} alt={g.caption} style={{width:"100%",height:"100%",objectFit:"cover"}}/>
+            <div style={{position:"absolute",bottom:0,left:0,right:0,background:"linear-gradient(transparent,#000c)",padding:"14px 4px 4px",fontSize:9,color:"#fff",fontWeight:700,overflow:"hidden",whiteSpace:"nowrap",textOverflow:"ellipsis",textAlign:"center"}}>{g.caption}</div>
+          </div>
+        ))}
+      </div>
+      {lb&&(
+        <div onClick={()=>setLb(null)} style={{position:"fixed",inset:0,background:"#000e",zIndex:9000,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
+          <div onClick={e=>e.stopPropagation()} style={{background:C.card,borderRadius:18,overflow:"hidden",maxWidth:400,width:"100%"}}>
+            <img src={lb.src} style={{width:"100%",maxHeight:320,objectFit:"cover",display:"block"}}/>
+            <div style={{padding:"13px 15px"}}>
+              <div style={{fontWeight:800,fontSize:15}}>{lb.caption}</div>
+              <div style={{color:C.muted,fontSize:12,marginTop:3}}>{lb.studentName} · {fmtDate(lb.date)}</div>
+              <button onClick={()=>setLb(null)} style={{marginTop:12,width:"100%",background:C.card2,color:C.muted,borderRadius:11,padding:10,fontWeight:800,fontSize:13,border:`1px solid ${C.border}`}}>✕ Close</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>
