@@ -89,7 +89,10 @@ const firebaseConfig={
 };
 if(!firebase.apps.length) firebase.initializeApp(firebaseConfig);
 const db=firebase.firestore();
-db.enablePersistence({synchronizeTabs:true}).catch(()=>{});
+db.collection("students").limit(1).get()
+.then(() => console.log("Firestore Connected ✅"))
+.catch(err => console.error("Firestore Error ❌", err));
+//db.enablePersistence({synchronizeTabs:true}).catch(()=>{});
 </script>
 
 <script type="text/babel" data-presets="react">
@@ -1800,7 +1803,8 @@ function PFeeMonths({sFees}){
     </>
   );
 }
-
+console.log("VM CLUB BUILD 2026 TEST");
+alert("VM CLUB BUILD 2026 TEST");
 ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
 </script>
 </body>
