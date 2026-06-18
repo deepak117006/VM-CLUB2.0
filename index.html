@@ -1,0 +1,109 @@
+﻿
+  <!DOCTYPE html>
+  <html lang="en">
+  <head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
+  <meta name="theme-color" content="#cc2222"/>
+  <meta name="mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+  <meta name="apple-mobile-web-app-title" content="VM Club"/>
+  <title>VM Silambam &amp; Karate Club</title>
+  <link rel="manifest" href="data:application/manifest+json,{%22name%22:%22VM Silambam and Karate Club%22,%22short_name%22:%22VM Club%22,%22start_url%22:%22.%22,%22display%22:%22standalone%22,%22background_color%22:%22%230c0c0c%22,%22theme_color%22:%22%23cc2222%22,%22icons%22:[{%22src%22:%22data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' fill='%230c0c0c'/%3E%3Cpolygon points='256,40 470,130 470,370 256,480 42,370 42,130' fill='%23111' stroke='%23cc2222' stroke-width='16'/%3E%3Cpolyline points='80,160 175,360 256,240 337,360 432,160' stroke='%23cc2222' stroke-width='30' stroke-linecap='round' stroke-linejoin='round' fill='none'/%3E%3Cpolyline points='80,160 256,390 432,160' stroke='white' stroke-width='10' stroke-linecap='round' stroke-linejoin='round' fill='none'/%3E%3Cpolyline points='175,70 256,148 337,70' stroke='%23cc2222' stroke-width='24' stroke-linecap='round' fill='none'/%3E%3C/svg%3E%22,%22sizes%22:%22512x512%22,%22type%22:%22image/svg+xml%22,%22purpose%22:%22any maskable%22}]}"/>
+  <style>
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%;overflow:hidden;background:#0c0c0c}
+  #root{height:100%;overflow:hidden}
+  body{font-family:'Segoe UI',system-ui,sans-serif;color:#f2f2f2;-webkit-font-smoothing:antialiased}
+  ::-webkit-scrollbar{width:3px}::-webkit-scrollbar-thumb{background:#cc222244;border-radius:4px}
+  input,select,textarea{
+    background:#202020;color:#f2f2f2;border:1.5px solid #2c2c2c;border-radius:11px;
+    padding:10px 13px;width:100%;font-size:14px;outline:none;font-family:inherit;
+    transition:border .2s;-webkit-appearance:none;appearance:none}
+  input:focus,select:focus,textarea:focus{border-color:#cc2222;box-shadow:0 0 0 3px #cc222218}
+  input::placeholder,textarea::placeholder{color:#444}
+  select option{background:#202020}
+  button{cursor:pointer;font-family:inherit;transition:transform .12s,opacity .12s;border:none;outline:none}
+  button:active{transform:scale(.96)}
+  @keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  @keyframes pulse{0%,100%{box-shadow:0 0 0 0 #cc222266}50%{box-shadow:0 0 0 10px #cc222200}}
+  .fa{animation:fadeUp .25s ease}
+  .spinner{width:38px;height:38px;border:3px solid #2c2c2c;border-top-color:#cc2222;border-radius:50%;animation:spin .8s linear infinite}
+  #ib{display:none;position:fixed;bottom:76px;left:50%;transform:translateX(-50%);
+    background:#cc2222;color:#fff;padding:12px 20px;border-radius:14px;font-weight:800;
+    font-size:14px;z-index:9999;box-shadow:0 4px 20px #0009;max-width:340px;width:90%;
+    text-align:center;cursor:pointer}
+  #iib{display:none;position:fixed;bottom:76px;left:50%;transform:translateX(-50%);
+    background:#1a1a1a;border:1px solid #cc2222;color:#f2f2f2;padding:14px 18px;
+    border-radius:14px;font-size:13px;z-index:9999;box-shadow:0 4px 20px #0009;
+    max-width:340px;width:90%;text-align:center}
+  </style>
+  </head>
+  <body>
+  
+  <div id="root">
+    <div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:14px">
+      <div class="spinner"></div>
+      <div style="color:#666;font-size:13px">Connecting to Firebaseâ€¦</div>
+    </div>
+  </div>
+  
+  <div id="ib" onclick="doInstall()">ðŸ“² Install VM Club â€” Tap to Add to Home Screen</div>
+  <div id="iib">
+    ðŸ“² <strong>Install VM Club:</strong><br/>
+    Tap <strong>Share â¬†ï¸</strong> â†’ <strong>"Add to Home Screen"</strong>
+    <button onclick="document.getElementById('iib').style.display='none'"
+      style="display:block;margin:10px auto 0;background:transparent;color:#cc2222;
+      border:1px solid #cc2222;border-radius:8px;padding:5px 16px;font-weight:800;font-size:13px">
+      Got it âœ“
+    </button>
+  </div>
+  
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+  
+  <script>
+  // SERVICE WORKER DISABLED
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.getRegistrations().then(regs => {
+      regs.forEach(r => r.unregister());
+    });
+  }
+  
+  if ('caches' in window) {
+    caches.keys().then(keys => {
+      keys.forEach(k => caches.delete(k));
+    });
+  }
+  let _dip=null;
+  window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();_dip=e;document.getElementById('ib').style.display='block';setTimeout(()=>document.getElementById('ib').style.display='none',9000);});
+  function doInstall(){if(!_dip)return;_dip.prompt();_dip.userChoice.then(()=>{_dip=null;document.getElementById('ib').style.display='none';});}
+  window.addEventListener('appinstalled',()=>document.getElementById('ib').style.display='none');
+  const isIOS=/iphone|ipad|ipod/i.test(navigator.userAgent);
+  const isSA=window.matchMedia('(display-mode:standalone)').matches||navigator.standalone;
+  if(isIOS&&!isSA)setTimeout(()=>document.getElementById('iib').style.display='block',3500);
+  
+  const firebaseConfig={
+    apiKey:"AIzaSyAiCI3PjrfyU-7RxyKiTrs4t9p4S5sOXfM",
+    authDomain:"vm-club.firebaseapp.com",
+    projectId:"vm-club",
+    storageBucket:"vm-club.firebasestorage.app",
+    messagingSenderId:"104021197625",
+    appId:"1:104021197625:web:31e4c1143b792d98ae5ee8"
+  };
+  if(!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+  const db=firebase.firestore();
+  db.collection("students").limit(1).get()
+  .then(() => console.log("Firestore Connected ✅"))
+  .catch(err => console.error("Firestore Error ❌", err));
+  //db.enablePersistence({synchronizeTabs:true}).catch(()=>{});
+  </script>
+
+<script src="compiled_test_classic.js"></script>
+
+</body>
+</html>
