@@ -67,9 +67,17 @@ button:active{transform:scale(.96)}
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
 <script>
-if('serviceWorker' in navigator){
-  const sw=`const C='vm-v3';self.addEventListener('install',e=>{self.skipWaiting();});self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(k=>Promise.all(k.filter(x=>x!==C).map(x=>caches.delete(x)))));self.clients.claim();});self.addEventListener('fetch',e=>{if(e.request.url.includes('firestore')||e.request.url.includes('googleapis')||e.request.url.includes('cloudinary'))return;e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request).catch(()=>r)));});`;
-  navigator.serviceWorker.register(URL.createObjectURL(new Blob([sw],{type:'application/javascript'}))).catch(()=>{});
+// SERVICE WORKER DISABLED
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.getRegistrations().then(regs => {
+    regs.forEach(r => r.unregister());
+  });
+}
+
+if ('caches' in window) {
+  caches.keys().then(keys => {
+    keys.forEach(k => caches.delete(k));
+  });
 }
 let _dip=null;
 window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();_dip=e;document.getElementById('ib').style.display='block';setTimeout(()=>document.getElementById('ib').style.display='none',9000);});
